@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
+#include <time.h>
 #include "driver/gpio.h"
 #include "driver/i2c_master.h"
 #include "driver/spi_master.h"
@@ -222,6 +223,28 @@ static void demo_button_task(void* arg)
     }
 }
 
+void demo_clock_task(void* arg)
+{
+    ESP_LOGI(TAG, "Starting time task");
+
+    time_t now;
+    char strftime_buf[64];
+    struct tm timeinfo;
+
+    // Set timezone to America/Denver
+    setenv("TZ", "MST7MDT", 1);
+    tzset();
+
+    while (1) {
+        time(&now);
+        localtime_r(&now, &timeinfo);
+        strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
+        ESP_LOGI(TAG, "The current date/time in Denver is: %s", strftime_buf);
+
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+}
+
 void app_main() {
 
     ESP_LOGI(TAG, "Starting main task");
@@ -344,6 +367,7 @@ void app_main() {
     xTaskCreate(demo_display_task, "Display Update", 3072, NULL, 4, NULL);
     xTaskCreate(demo_battery_task, "Battery Monitor", 3072, NULL, 4, NULL);
     xTaskCreate(demo_button_task, "Button Monitor", 3072, NULL, 4, NULL);
+    xTaskCreate(demo_clock_task, "Clock", 3072, NULL, 5, NULL);
 
     uint32_t ctr = 0;
     while (true) {
