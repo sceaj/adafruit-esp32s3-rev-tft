@@ -1,6 +1,7 @@
 dependencies:
   espressif/esp_lvgl_port:
-    component_hash: 41806031d90c91d50512d6f335f73978a1dd1aa1100ef5db40e189610be991ac
+    component_hash: 
+      41806031d90c91d50512d6f335f73978a1dd1aa1100ef5db40e189610be991ac
     dependencies:
     - name: idf
       require: private
@@ -16,17 +17,26 @@ dependencies:
   idf:
     source:
       type: idf
-    version: 5.4.0
+    version: 5.5.2
   lvgl/lvgl:
-    component_hash: 096c69af22eaf8a2b721e3913da91918c5e6bf1a762a113ec01f401aa61337a0
+    component_hash: 
+      17e68bfd21f0edf4c3ee838e2273da840bf3930e5dbc3bfa6c1190c3aed41f9f
     dependencies: []
     source:
       registry_url: https://components.espressif.com
       type: service
-    version: 9.2.2
+    version: 9.4.0
+  protocol_examples_common:
+    dependencies: []
+    source:
+      path: 
+        /Users/jrosen/esp/v5.5.2/esp-idf/examples/common_components/protocol_examples_common
+      type: local
+    version: '*'
 direct_dependencies:
 - espressif/esp_lvgl_port
 - idf
-manifest_hash: 008bd12fa7a5fc2be1746fbd15f6fb70fdd2fa09773ef4f1645bd6d687120e00
+- protocol_examples_common
+manifest_hash: 746bcf9357a731573392a2e82a75624f386ea360bfdf8e41f6677acb039c0ff4
 target: esp32s3
 version: 2.0.0

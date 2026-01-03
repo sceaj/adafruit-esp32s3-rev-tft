@@ -33,9 +33,9 @@ static void handler_on_wifi_disconnect(void *arg, esp_event_base_t event_base,
                                int32_t event_id, void *event_data)
 {
     s_retry_num++;
-    if (s_retry_num > CONFIG_WIFI_CONN_MAX_RETRY) {
+    if (s_retry_num > CONFIG_EXAMPLE_WIFI_CONN_MAX_RETRY) {
         ESP_LOGI(TAG, "WiFi Connect failed %d times, stop reconnect.", s_retry_num);
-        /* let example_wifi_sta_do_connect() return */
+        /* let wifi_sta_do_connect() return */
         if (s_semph_get_ip_addrs) {
             xSemaphoreGive(s_semph_get_ip_addrs);
         }
@@ -44,7 +44,7 @@ static void handler_on_wifi_disconnect(void *arg, esp_event_base_t event_base,
             xSemaphoreGive(s_semph_get_ip6_addrs);
         }
 #endif
-        example_wifi_sta_do_disconnect();
+        wifi_sta_do_disconnect();
         return;
     }
     wifi_event_sta_disconnected_t *disconn = event_data;
@@ -73,7 +73,7 @@ static void handler_on_sta_got_ip(void *arg, esp_event_base_t event_base,
 {
     s_retry_num = 0;
     ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
-    if (!example_is_our_netif(EXAMPLE_NETIF_DESC_STA, event->esp_netif)) {
+    if (event->esp_netif != s_example_sta_netif) {
         return;
     }
     ESP_LOGI(TAG, "Got IPv4 event: Interface \"%s\" address: " IPSTR, esp_netif_get_desc(event->esp_netif), IP2STR(&event->ip_info.ip));
@@ -84,23 +84,23 @@ static void handler_on_sta_got_ip(void *arg, esp_event_base_t event_base,
     }
 }
 
-#if CONFIG_EXAMPLE_CONNECT_IPV6
+#if 0  // CONFIG_EXAMPLE_CONNECT_IPV6 disabled due to missing helpers
 static void handler_on_sta_got_ipv6(void *arg, esp_event_base_t event_base,
                         int32_t event_id, void *event_data)
 {
     ip_event_got_ip6_t *event = (ip_event_got_ip6_t *)event_data;
-    if (!example_is_our_netif(EXAMPLE_NETIF_DESC_STA, event->esp_netif)) {
+    if (event->esp_netif != s_example_sta_netif) {
         return;
     }
     esp_ip6_addr_type_t ipv6_type = esp_netif_ip6_get_addr_type(&event->ip6_info.ip);
     ESP_LOGI(TAG, "Got IPv6 event: Interface \"%s\" address: " IPV6STR ", type: %s", esp_netif_get_desc(event->esp_netif),
-             IPV62STR(event->ip6_info.ip), example_ipv6_addr_types_to_str[ipv6_type]);
+             IPV62STR(event->ip6_info.ip), "link-local");
 
-    if (ipv6_type == EXAMPLE_CONNECT_PREFERRED_IPV6_TYPE) {
+    if (ipv6_type == ESP_IP6_ADDR_IS_LINK_LOCAL) {
         if (s_semph_get_ip6_addrs) {
             xSemaphoreGive(s_semph_get_ip6_addrs);
         } else {
-            ESP_LOGI(TAG, "- IPv6 address: " IPV6STR ", type: %s", IPV62STR(event->ip6_info.ip), example_ipv6_addr_types_to_str[ipv6_type]);
+            ESP_LOGI(TAG, "- IPv6 address: " IPV6STR ", type: link-local", IPV62STR(event->ip6_info.ip));
         }
     }
 }
@@ -155,12 +155,9 @@ esp_err_t wifi_sta_do_connect(wifi_config_t wifi_config, bool wait)
 #endif
     }
     s_retry_num = 0;
-    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, &example_handler_on_wifi_disconnect, NULL));
-    ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &example_handler_on_sta_got_ip, NULL));
+    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, &handler_on_wifi_disconnect, NULL));
+    ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &handler_on_sta_got_ip, NULL));
     ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_CONNECTED, &example_handler_on_wifi_connect, s_example_sta_netif));
-#if CONFIG_EXAMPLE_CONNECT_IPV6
-    ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_GOT_IP6, &example_handler_on_sta_got_ipv6, NULL));
-#endif
 
     ESP_LOGI(TAG, "Connecting to %s...", wifi_config.sta.ssid);
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
@@ -177,7 +174,7 @@ esp_err_t wifi_sta_do_connect(wifi_config_t wifi_config, bool wait)
 #if CONFIG_EXAMPLE_CONNECT_IPV6
         xSemaphoreTake(s_semph_get_ip6_addrs, portMAX_DELAY);
 #endif
-        if (s_retry_num > CONFIG_WIFI_CONN_MAX_RETRY) {
+        if (s_retry_num > CONFIG_EXAMPLE_WIFI_CONN_MAX_RETRY) {
             return ESP_FAIL;
         }
     }
@@ -186,12 +183,9 @@ esp_err_t wifi_sta_do_connect(wifi_config_t wifi_config, bool wait)
 
 esp_err_t wifi_sta_do_disconnect(void)
 {
-    ESP_ERROR_CHECK(esp_event_handler_unregister(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, &example_handler_on_wifi_disconnect));
-    ESP_ERROR_CHECK(esp_event_handler_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, &example_handler_on_sta_got_ip));
+    ESP_ERROR_CHECK(esp_event_handler_unregister(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, &handler_on_wifi_disconnect));
+    ESP_ERROR_CHECK(esp_event_handler_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, &handler_on_sta_got_ip));
     ESP_ERROR_CHECK(esp_event_handler_unregister(WIFI_EVENT, WIFI_EVENT_STA_CONNECTED, &example_handler_on_wifi_connect));
-#if CONFIG_EXAMPLE_CONNECT_IPV6
-    ESP_ERROR_CHECK(esp_event_handler_unregister(IP_EVENT, IP_EVENT_GOT_IP6, &example_handler_on_sta_got_ipv6));
-#endif
     if (s_semph_get_ip_addrs) {
         vSemaphoreDelete(s_semph_get_ip_addrs);
     }
@@ -212,20 +206,19 @@ void wifi_shutdown(void)
 esp_err_t wifi_connect(void)
 {
     ESP_LOGI(TAG, "Start example_connect.");
-    example_wifi_start();
-    wifi_config_t wifi_config = {
-        .sta = {
+    wifi_start();
+    wifi_config_t wifi_config;
+    memset(&wifi_config, 0, sizeof(wifi_config_t));
+    
+    wifi_config.sta.scan_method = EXAMPLE_WIFI_SCAN_METHOD;
+    wifi_config.sta.sort_method = EXAMPLE_WIFI_CONNECT_AP_SORT_METHOD;
+    wifi_config.sta.threshold.rssi = CONFIG_EXAMPLE_WIFI_SCAN_RSSI_THRESHOLD;
+    wifi_config.sta.threshold.authmode = EXAMPLE_WIFI_SCAN_AUTH_MODE_THRESHOLD;
+    
 #if !CONFIG_WIFI_SSID_PWD_FROM_STDIN
-            .ssid = CONFIG_WIFI_SSID,
-            .password = CONFIG_WIFI_PASSWORD,
-#endif
-            .scan_method = EXAMPLE_WIFI_SCAN_METHOD,
-            .sort_method = EXAMPLE_WIFI_CONNECT_AP_SORT_METHOD,
-            .threshold.rssi = CONFIG_WIFI_SCAN_RSSI_THRESHOLD,
-            .threshold.authmode = EXAMPLE_WIFI_SCAN_AUTH_MODE_THRESHOLD,
-        },
-    };
-#if CONFIG_WIFI_SSID_PWD_FROM_STDIN
+    strncpy((char *)wifi_config.sta.ssid, CONFIG_EXAMPLE_WIFI_SSID, sizeof(wifi_config.sta.ssid) - 1);
+    strncpy((char *)wifi_config.sta.password, CONFIG_EXAMPLE_WIFI_PASSWORD, sizeof(wifi_config.sta.password) - 1);
+#else
     example_configure_stdin_stdout();
     char buf[sizeof(wifi_config.sta.ssid)+sizeof(wifi_config.sta.password)+2] = {0};
     ESP_LOGI(TAG, "Please input ssid password:");
@@ -245,7 +238,7 @@ esp_err_t wifi_connect(void)
         wifi_config.sta.threshold.authmode = WIFI_AUTH_OPEN;
     }
 #endif
-    return example_wifi_sta_do_connect(wifi_config, true);
+    return wifi_sta_do_connect(wifi_config, true);
 }
 
 

@@ -12,7 +12,7 @@ static lv_obj_t *button_label;
 static lv_obj_t *line_red;
 static lv_obj_t *line_green;
 static lv_obj_t *line_blue;
-static lv_display_rotation_t rotation = LV_DISPLAY_ROTATION_0;
+# static lv_display_rotation_t rotation = LV_DISPLAY_ROTATION_0;
 
 
 void update_battery_ui(unsigned voltage, unsigned voltage_deci, unsigned capacity, unsigned capacity_deci) {

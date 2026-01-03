@@ -1,11 +1,20 @@
 {
-    "C_Cpp.intelliSenseEngine": "default",
-    "idf.espIdfPathWin": "C:\\Users\\Jeffrey\\esp\\v5.4\\esp-idf",
-    "idf.openOcdConfigs": [
-        "interface/ftdi/esp32_devkitj_v1.cfg",
-        "target/esp32s3.cfg"
-    ],
-    "idf.portWin": "COM6",
-    "idf.toolsPathWin": "C:\\Users\\Jeffrey\\.espressif",
-    "idf.flashType": "UART"
+  "C_Cpp.intelliSenseEngine": "default",
+  "idf.espIdfPathWin": "C:\\Users\\Jeffrey\\esp\\v5.4\\esp-idf",
+  "idf.openOcdConfigs": [
+    "board/esp32s3-bridge.cfg"
+  ],
+  "idf.portWin": "COM6",
+  "idf.toolsPathWin": "C:\\Users\\Jeffrey\\.espressif",
+  "idf.flashType": "UART",
+  "idf.port": "/dev/tty.usbmodem14101",
+  "idf.customExtraVars": {
+    "IDF_TARGET": "esp32s3"
+  },
+  "clangd.path": "/Users/jrosen/.espressif/tools/esp-clang/esp-19.1.2_20250312/esp-clang/bin/clangd",
+  "clangd.arguments": [
+    "--background-index",
+    "--query-driver=**",
+    "--compile-commands-dir=/Users/jrosen/esp-projects/adafruit-esp32s3-rev-tft/build"
+  ]
 }
